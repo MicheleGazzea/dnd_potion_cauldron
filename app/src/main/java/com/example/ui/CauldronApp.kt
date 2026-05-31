@@ -912,18 +912,39 @@ fun RecipeLibraryView(recipes: List<PotionRecipe>) {
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🪙 Reagent Cost: ${recipe.craftingPriceGp} GP",
+                                text = "🪙 Vending: ${recipe.vendingPriceGp} GP",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = LegendaryGold,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
+                                text = "🧪 Reagent: ${recipe.craftingPriceGp} GP",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AlchemistGreen,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
                                 text = "⚔️ Min Level: ${recipe.minLevel}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = WizardPurple,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val requiredDays = Math.round(kotlin.math.sqrt(recipe.vendingPriceGp.toDouble()) / 5.0).toInt()
+                            Text(
+                                text = "⌛ Time: $requiredDays Days",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MintAlchemistGreen,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -1158,45 +1179,54 @@ fun StartBrewingForm(
 
                 // Inline custom suggestion overlay card that draws on top of components below it in the parent Box
                 if (dropdownExpanded && selectedRecipe?.name != searchQuery) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 62.dp) // Offset vertically to sit exactly below the OutlinedTextField!
-                            .heightIn(max = 200.dp)
-                            .border(BorderStroke(1.dp, CauldronRim), RoundedCornerShape(8.dp)),
-                        colors = CardDefaults.cardColors(containerColor = SumpCardColor)
+                    androidx.compose.ui.window.Popup(
+                        onDismissRequest = { dropdownExpanded = false },
+                        properties = androidx.compose.ui.window.PopupProperties(
+                            focusable = false,
+                            dismissOnBackPress = true,
+                            dismissOnClickOutside = true
+                        )
                     ) {
-                        Column(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(4.dp)
+                                .padding(top = 62.dp) // Offset vertically to sit exactly below the OutlinedTextField!
+                                .heightIn(max = 200.dp)
+                                .border(BorderStroke(1.dp, CauldronRim), RoundedCornerShape(8.dp)),
+                            colors = CardDefaults.cardColors(containerColor = SumpCardColor)
                         ) {
-                            filteredRecipes.forEach { recipe ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            selectedRecipe = recipe
-                                            searchQuery = recipe.name
-                                            dropdownExpanded = false
-                                        }
-                                        .padding(vertical = 10.dp, horizontal = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(recipe.name, color = CommonWhite, fontSize = 14.sp)
-                                    RarityTag(rarity = recipe.rarity)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(4.dp)
+                            ) {
+                                filteredRecipes.forEach { recipe ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                selectedRecipe = recipe
+                                                searchQuery = recipe.name
+                                                dropdownExpanded = false
+                                            }
+                                            .padding(vertical = 10.dp, horizontal = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(recipe.name, color = CommonWhite, fontSize = 14.sp)
+                                        RarityTag(rarity = recipe.rarity)
+                                    }
                                 }
-                            }
-                            if (filteredRecipes.isEmpty()) {
-                                Text(
-                                    "No matching recipes found",
-                                    color = Color.Gray,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(12.dp)
-                                )
+                                if (filteredRecipes.isEmpty()) {
+                                    Text(
+                                        "No matching recipes found",
+                                        color = Color.Gray,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(12.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1502,7 +1532,7 @@ fun StartBrewingForm(
                     )
                     
                     val gpCost = recipe.craftingPriceGp * quantity
-                    val baseBrews = sqrt(recipe.craftingPriceGp.toDouble()) / 5.0
+                    val baseBrews = sqrt(recipe.vendingPriceGp.toDouble()) / 5.0
                     val speedReduced = if (selectedResidue != null) " (Active Catalyst halve roll possible!)" else ""
 
                     // Dynamic calculated completion date based on standard calendar
@@ -1515,6 +1545,12 @@ fun StartBrewingForm(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Gold Cost Reagents:", fontSize = 12.sp, color = Color.LightGray)
                         Text("$gpCost GP", fontSize = 12.sp, color = LegendaryGold, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Required Crafting Time:", fontSize = 12.sp, color = Color.LightGray)
+                        val reqSingleDays = Math.round(kotlin.math.sqrt(recipe.vendingPriceGp.toDouble()) / 5.0).toInt()
+                        val reqTotalDays = reqSingleDays * quantity
+                        Text("$reqSingleDays Days" + (if (quantity > 1) " ($reqTotalDays Days total)" else ""), fontSize = 12.sp, color = MintAlchemistGreen, fontWeight = FontWeight.Bold)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Brewing Duration:", fontSize = 12.sp, color = Color.LightGray)

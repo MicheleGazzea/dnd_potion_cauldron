@@ -19,7 +19,8 @@ data class PotionRecipe(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val rarity: String,
-    @ColumnInfo(name = "crafting_price_gp") val craftingPriceGp: Int,
+    @ColumnInfo(name = "vending_price_gp") val vendingPriceGp: Int,
+    @ColumnInfo(name = "crafting_price_gp") val craftingPriceGp: Int = vendingPriceGp / 2,
     @ColumnInfo(name = "min_level") val minLevel: Int,
     val effects: String
 )
