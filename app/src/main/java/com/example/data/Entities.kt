@@ -14,13 +14,26 @@ data class CampaignSettings(
     @ColumnInfo(name = "current_period") val currentPeriod: String = "NOON"
 )
 
+fun getCraftingPrice(name: String, vendingPriceGp: Int): Int {
+    return if (name in listOf(
+        "Potion of Bear Endurance",
+        "Elixir of Health",
+        "Potion of Fire Breath",
+        "Potion of Fire Giant Strength",
+        "Potion of Hill Giant Strength",
+        "Potion of Invulnerability",
+        "Potion of Resistance",
+        "Potion of Superior Healing"
+    )) vendingPriceGp / 4 else vendingPriceGp / 2
+}
+
 @Entity(tableName = "potions_library")
 data class PotionRecipe(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val rarity: String,
     @ColumnInfo(name = "vending_price_gp") val vendingPriceGp: Int,
-    @ColumnInfo(name = "crafting_price_gp") val craftingPriceGp: Int = vendingPriceGp / 2,
+    @ColumnInfo(name = "crafting_price_gp") val craftingPriceGp: Int = getCraftingPrice(name, vendingPriceGp),
     @ColumnInfo(name = "min_level") val minLevel: Int,
     val effects: String
 )

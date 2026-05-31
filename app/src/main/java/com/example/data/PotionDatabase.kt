@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
         ActiveBrew::class,
         ResidueItem::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class PotionDatabase : RoomDatabase() {

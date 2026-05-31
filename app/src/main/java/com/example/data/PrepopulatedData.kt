@@ -45,6 +45,13 @@ object PrepopulatedData {
             effects = "Animal friendship spell (DC 13) for 1 hour."
         ),
         PotionRecipe(
+            name = "Potion of Bear Endurance",
+            rarity = "Uncommon",
+            vendingPriceGp = 100,
+            minLevel = 3,
+            effects = "Constitution score becomes 21 for 1 hour."
+        ),
+        PotionRecipe(
             name = "Potion of Clairvoyance",
             rarity = "Rare",
             vendingPriceGp = 1000,
