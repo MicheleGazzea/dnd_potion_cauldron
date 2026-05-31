@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Sparkle star top-left -->
+    <path
+        android:fillColor="#F1C40F"
+        android:pathData="M28,24 L29.5,27.5 L33,28 L29.5,28.5 L28,32 L26.5,28.5 L23,28 L26.5,27.5 Z" />
+
+    <!-- Sparkle star top-right -->
+    <path
+        android:fillColor="#F1C40F"
+        android:pathData="M72,30 L73,32.5 L75.5,33 L73,33.5 L72,36 L71,33.5 L68.5,33 L71,32.5 Z" />
+
+    <!-- Potion flask neck fluid back if transparent, but we fill bulb bottom -->
+    <!-- Liquid / Fluid inside the bulb (Wizard Purple #8D5BFA) -->
+    <path
+        android:fillColor="#8D5BFA"
+        android:pathData="M23,65 C23,65 35,57 50,61 C65,65 77,57 77,57 C82,71 74,83 50,83 C26,83 18,71 23,65 Z" />
+
+    <!-- Flask Glass Outline / Body Container -->
+    <!-- Neck tube and Rim -->
+    <path
+        android:strokeColor="#B3A1E0"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M42,20 H58 V35 H42 Z" />
+
+    <path
+        android:fillColor="#B3A1E0"
+        android:pathData="M38,16 L62,16 C63.5,16 64,18 63.5,19.5 L63.5,19.5 C63,21 61.5,21 60,21 L40,21 C38.5,21 37,21 36.5,19.5 L36.5,19.5 C36,18 36.5,16 38,16 Z" />
+
+    <!-- Cork Stopper -->
+    <path
+        android:fillColor="#8C6239"
+        android:pathData="M43,11 L57,11 C58,11 59,12.5 59,14 L59,16 L41,16 L41,14 C41,12.5 42,11 43,11 Z" />
+
+    <!-- Flask Bulb body outline -->
+    <path
+        android:strokeColor="#B3A1E0"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M42,35 C42,35 22,41 18,62 C13.5,82.5 30,86 50,86 C70,86 86.5,82.5 82,62 C78,41 58,35 58,35" />
+
+    <!-- Bubbles in the purple fluid -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M 40,70 A 2,2 0 1,1 36,70 A 2,2 0 1,1 40,70 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.5"
+        android:pathData="M 62,65 A 1.5,1.5 0 1,1 59,65 A 1.5,1.5 0 1,1 62,65 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M 48,76 A 1,1 0 1,1 46,76 A 1,1 0 1,1 48,76 Z" />
+
+    <!-- Glass Highlights (Elegant translucent glare) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.2"
+        android:pathData="M23,55 C19,65 21,75 27,81 C25,78 22,66 26,54 Z" />
+
+</vector>
