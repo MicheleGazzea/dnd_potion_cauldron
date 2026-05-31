@@ -84,7 +84,8 @@ class PotionViewModel(private val repository: PotionRepository) : ViewModel() {
         startYear: Int,
         startMonth: Int,
         startDay: Int,
-        startPeriod: String
+        startPeriod: String,
+        manualD100Roll: Int? = null
     ) {
         val baseDuration = calculateBaseDuration(recipe.craftingPriceGp)
         
@@ -96,7 +97,7 @@ class PotionViewModel(private val repository: PotionRepository) : ViewModel() {
 
             if (selectedResidue != null) {
                 // Mix in residue: 1d100
-                val roll = Random.nextInt(1, 101)
+                val roll = manualD100Roll ?: Random.nextInt(1, 101)
                 d100Roll = roll
                 when (roll) {
                     in 1..33 -> {

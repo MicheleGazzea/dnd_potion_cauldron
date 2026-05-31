@@ -170,11 +170,11 @@ fun CauldronApp(viewModel: PotionViewModel) {
                             currentDay = currentDay,
                             currentPeriod = currentPeriod,
                             onBack = { currentScreen = AppScreen.Cauldron },
-                            onStartBrew = { recipe, qty, residue, startYear, startMonth, startDay, startPeriod ->
+                            onStartBrew = { recipe, qty, residue, startYear, startMonth, startDay, startPeriod, manualD100Roll ->
                                 // Compute d100 roll and notify if needed before adding
                                 var popupMessage: String? = null
                                 if (residue != null) {
-                                    val peekRoll = Random.nextInt(1, 101)
+                                    val peekRoll = manualD100Roll ?: Random.nextInt(1, 101)
                                     val effectText = when (peekRoll) {
                                         in 1..33 -> "Accelerated Batch! Rolled $peekRoll on % Dice. Brewing duration halved."
                                         in 34..66 -> "Potency Strain! Rolled $peekRoll on % Dice. Finished potions will be 50% more potent."
@@ -184,7 +184,7 @@ fun CauldronApp(viewModel: PotionViewModel) {
                                     popupMessage = effectText
                                 }
                                 
-                                viewModel.startBrewing(recipe, qty, residue, startYear, startMonth, startDay, startPeriod)
+                                viewModel.startBrewing(recipe, qty, residue, startYear, startMonth, startDay, startPeriod, manualD100Roll)
                                 showD100ToastMessage = popupMessage
                                 currentScreen = AppScreen.Cauldron
                             }
@@ -1067,7 +1067,7 @@ fun StartBrewingForm(
     currentDay: Int,
     currentPeriod: String,
     onBack: () -> Unit,
-    onStartBrew: (PotionRecipe, Int, ResidueItem?, Int, Int, Int, String) -> Unit
+    onStartBrew: (PotionRecipe, Int, ResidueItem?, Int, Int, Int, String, Int?) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf(1) }
@@ -1075,6 +1075,7 @@ fun StartBrewingForm(
     var selectedResidue by remember { mutableStateOf<ResidueItem?>(null) }
     var mixResidueEnabled by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
+    var showResidueRollDialog by remember { mutableStateOf(false) }
 
     // Start Date selection state
     var startDay by remember { mutableStateOf(currentDay) }
@@ -1137,7 +1138,7 @@ fun StartBrewingForm(
                     trailingIcon = {
                         IconButton(onClick = { dropdownExpanded = !dropdownExpanded }) {
                             Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
+                                imageVector = if (dropdownExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.ArrowDropDown,
                                 contentDescription = "Toggle dropdown",
                                 tint = WizardPurple
                             )
@@ -1155,39 +1156,49 @@ fun StartBrewingForm(
                     singleLine = true
                 )
 
-                DropdownMenu(
-                    expanded = dropdownExpanded,
-                    onDismissRequest = { dropdownExpanded = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(SumpCardColor)
-                        .heightIn(max = 250.dp)
-                ) {
-                    filteredRecipes.forEach { recipe ->
-                        DropdownMenuItem(
-                            text = {
+                // Inline custom suggestion overlay card that draws on top of components below it in the parent Box
+                if (dropdownExpanded && selectedRecipe?.name != searchQuery) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 62.dp) // Offset vertically to sit exactly below the OutlinedTextField!
+                            .heightIn(max = 200.dp)
+                            .border(BorderStroke(1.dp, CauldronRim), RoundedCornerShape(8.dp)),
+                        colors = CardDefaults.cardColors(containerColor = SumpCardColor)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(4.dp)
+                        ) {
+                            filteredRecipes.forEach { recipe ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            selectedRecipe = recipe
+                                            searchQuery = recipe.name
+                                            dropdownExpanded = false
+                                        }
+                                        .padding(vertical = 10.dp, horizontal = 12.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(recipe.name, color = CommonWhite, fontSize = 14.sp)
                                     RarityTag(rarity = recipe.rarity)
                                 }
-                            },
-                            onClick = {
-                                selectedRecipe = recipe
-                                searchQuery = recipe.name
-                                dropdownExpanded = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    if (filteredRecipes.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No matching recipes found", color = Color.Gray, fontSize = 13.sp) },
-                            onClick = {}
-                        )
+                            }
+                            if (filteredRecipes.isEmpty()) {
+                                Text(
+                                    "No matching recipes found",
+                                    color = Color.Gray,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1522,11 +1533,28 @@ fun StartBrewingForm(
         }
         }
 
+        if (showResidueRollDialog && selectedRecipe != null && selectedResidue != null) {
+            ResidueCatalysisDialog(
+                potionName = selectedRecipe!!.name,
+                catalystName = selectedResidue!!.potionSource,
+                catalystType = selectedResidue!!.residueType,
+                onDismiss = { showResidueRollDialog = false },
+                onConfirm = { rollVal ->
+                    showResidueRollDialog = false
+                    onStartBrew(selectedRecipe!!, quantity, selectedResidue, startYear, startMonth, startDay, startPeriod, rollVal)
+                }
+            )
+        }
+
         // Fire Hearth / Action Button
         Button(
             onClick = {
                 selectedRecipe?.let {
-                    onStartBrew(it, quantity, selectedResidue, startYear, startMonth, startDay, startPeriod)
+                    if (mixResidueEnabled && selectedResidue != null) {
+                        showResidueRollDialog = true
+                    } else {
+                        onStartBrew(it, quantity, null, startYear, startMonth, startDay, startPeriod, null)
+                    }
                 }
             },
             enabled = selectedRecipe != null,
@@ -1752,5 +1780,175 @@ fun RarityTag(rarity: String) {
             fontWeight = FontWeight.Bold,
             color = borderCol
         )
+    }
+}
+
+@Composable
+fun ResidueCatalysisDialog(
+    potionName: String,
+    catalystName: String,
+    catalystType: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var rollInput by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+
+    val d100Score = rollInput.toIntOrNull()?.coerceIn(1, 100)
+
+    val outcomeExplanation = remember(d100Score) {
+        when (d100Score) {
+            null -> "Awaiting physical 1D100 percentage roll..."
+            in 1..33 -> "ACCELERATED BATCH (1-33): Alchemical catalysis accelerates the yeast! Cooking duration is reduced by 50%!"
+            in 34..66 -> "POTENCY STRAIN (34-66): Catalysis concentrates the molecular structure! Finished potions will have +50% potency!"
+            in 67..99 -> "SECONDARY SEPARATION (67-99): Bonus separation harvests an extra random potion of equivalent rarity on completion!"
+            100 -> "SUPERMUTATION! (100): Absolute masterwork reaction! The batch mutated completely into a random high-tier RARE item!"
+            else -> "Invalid D100 format index."
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            colors = CardDefaults.cardColors(containerColor = SumpCardColor),
+            border = BorderStroke(1.dp, AlchemistGreen),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "🔮 Alchemical Catalysis",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    color = AlchemistGreen
+                )
+
+                Text(
+                    text = "Applying $catalystName ($catalystType) into $potionName batch.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.LightGray,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "Enter physical 1D100 % score or let us roll for you:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LegendaryGold,
+                    textAlign = TextAlign.Center
+                )
+
+                // Large Roll input Box
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = rollInput,
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty()) {
+                                rollInput = ""
+                            } else {
+                                val clean = newValue.filter { it.isDigit() }
+                                val numeric = clean.toIntOrNull()
+                                if (numeric != null && numeric in 1..100) {
+                                    rollInput = numeric.toString()
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(
+                            textAlign = TextAlign.Center,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LegendaryGold,
+                            fontFamily = FontFamily.Monospace
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = LegendaryGold,
+                            unfocusedBorderColor = CauldronRim,
+                            focusedContainerColor = DeepObsidian,
+                            unfocusedContainerColor = DeepObsidian
+                        ),
+                        modifier = Modifier
+                            .width(100.dp)
+                            .testTag("catalysis_d100_input"),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Roll for me button
+                    Button(
+                        onClick = {
+                            val rVal = Random.nextInt(1, 101)
+                            rollInput = rVal.toString()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CauldronRim, contentColor = AlchemistGreen),
+                        border = BorderStroke(1.dp, AlchemistGreen.copy(alpha = 0.5f))
+                    ) {
+                        Text("🎲 Roll For Me", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Interactive predictor notes
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DeepObsidian, RoundedCornerShape(8.dp))
+                        .border(BorderStroke(1.dp, CauldronRim), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = outcomeExplanation,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (d100Score == 100) LegendaryGold else if (d100Score != null) AlchemistGreen else CommonWhite,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Confirm and cancel interactions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        border = BorderStroke(1.dp, Color.Gray),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.LightGray),
+                        modifier = Modifier.weight(1.5f)
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = {
+                            d100Score?.let {
+                                onConfirm(it)
+                            }
+                        },
+                        enabled = d100Score != null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AlchemistGreen,
+                            contentColor = DeepObsidian
+                        ),
+                        modifier = Modifier
+                            .weight(2f)
+                            .testTag("btn_confirm_catalysis")
+                    ) {
+                        Text("Ignite Crucible", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
     }
 }
