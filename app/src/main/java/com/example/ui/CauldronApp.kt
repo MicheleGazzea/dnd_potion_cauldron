@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -1072,6 +1074,7 @@ fun StartBrewingForm(
     var selectedRecipe by remember { mutableStateOf<PotionRecipe?>(null) }
     var selectedResidue by remember { mutableStateOf<ResidueItem?>(null) }
     var mixResidueEnabled by remember { mutableStateOf(false) }
+    var dropdownExpanded by remember { mutableStateOf(false) }
 
     // Start Date selection state
     var startDay by remember { mutableStateOf(currentDay) }
@@ -1110,59 +1113,81 @@ fun StartBrewingForm(
             color = CommonWhite
         )
 
-        // Dropdown Search & Picker for Recipe Library
+        // Scrollable container for form fields and predictions
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Dropdown Search & Picker for Recipe Library
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("SELECT RECIPE", style = MaterialTheme.typography.labelSmall, color = LegendaryGold, fontWeight = FontWeight.Bold)
             
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Filter potions library...", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = WizardPurple) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = WizardPurple,
-                    unfocusedBorderColor = CauldronRim,
-                    focusedContainerColor = SumpCardColor,
-                    unfocusedContainerColor = SumpCardColor
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("form_recipe_search"),
-                singleLine = true
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { 
+                        searchQuery = it
+                        dropdownExpanded = true
+                    },
+                    placeholder = { Text("Filter potions library...", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = WizardPurple) },
+                    trailingIcon = {
+                        IconButton(onClick = { dropdownExpanded = !dropdownExpanded }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Toggle dropdown",
+                                tint = WizardPurple
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = WizardPurple,
+                        unfocusedBorderColor = CauldronRim,
+                        focusedContainerColor = SumpCardColor,
+                        unfocusedContainerColor = SumpCardColor
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("form_recipe_search"),
+                    singleLine = true
+                )
 
-            // Results List
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 140.dp)
-                    .border(BorderStroke(1.dp, CauldronRim), RoundedCornerShape(8.dp))
-                    .background(DeepObsidian),
-                contentPadding = PaddingValues(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(filteredRecipes) { recipe ->
-                    val isSelected = selectedRecipe == recipe
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (isSelected) GlowPurple else Color.Transparent)
-                            .clickable {
+                DropdownMenu(
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SumpCardColor)
+                        .heightIn(max = 250.dp)
+                ) {
+                    filteredRecipes.forEach { recipe ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(recipe.name, color = CommonWhite, fontSize = 14.sp)
+                                    RarityTag(rarity = recipe.rarity)
+                                }
+                            },
+                            onClick = {
                                 selectedRecipe = recipe
-                                searchQuery = recipe.name // set search query to selected name
-                            }
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = recipe.name,
-                            color = if (isSelected) WizardPurple else CommonWhite,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 14.sp
+                                searchQuery = recipe.name
+                                dropdownExpanded = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        RarityTag(rarity = recipe.rarity)
+                    }
+                    if (filteredRecipes.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No matching recipes found", color = Color.Gray, fontSize = 13.sp) },
+                            onClick = {}
+                        )
                     }
                 }
             }
@@ -1447,8 +1472,6 @@ fun StartBrewingForm(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
         // Alchemical Calculations with estimated completion date
         selectedRecipe?.let { recipe ->
             Card(
@@ -1496,6 +1519,7 @@ fun StartBrewingForm(
                     }
                 }
             }
+        }
         }
 
         // Fire Hearth / Action Button
