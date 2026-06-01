@@ -916,13 +916,13 @@ fun RecipeLibraryView(recipes: List<PotionRecipe>) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🪙 Vending: ${recipe.vendingPriceGp} GP",
+                                text = "🪙 Crafting: ${recipe.craftingCost} GP",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = LegendaryGold,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "🧪 Reagent: ${recipe.craftingPriceGp} GP",
+                                text = "🧪 Reagent: ${recipe.reagentCost} GP",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AlchemistGreen,
                                 fontWeight = FontWeight.Bold
@@ -940,7 +940,7 @@ fun RecipeLibraryView(recipes: List<PotionRecipe>) {
                                 color = WizardPurple,
                                 fontWeight = FontWeight.Bold
                             )
-                            val requiredDays = Math.round(kotlin.math.sqrt(recipe.vendingPriceGp.toDouble()) / 5.0).toInt()
+                            val requiredDays = Math.round(kotlin.math.sqrt(recipe.craftingCost.toDouble()) / 5.0).toInt()
                             Text(
                                 text = "⌛ Time: $requiredDays Days",
                                 style = MaterialTheme.typography.bodySmall,
@@ -1097,6 +1097,35 @@ fun StartBrewingForm(
     var mixResidueEnabled by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     var showResidueRollDialog by remember { mutableStateOf(false) }
+
+    val validationError = remember(selectedRecipe, selectedResidue, mixResidueEnabled, recipes) {
+        if (mixResidueEnabled && selectedRecipe != null && selectedResidue != null) {
+            val resRecipe = recipes.find { it.name == selectedResidue!!.potionSource }
+            if (resRecipe != null) {
+                val getRarityTier = { r: String ->
+                    when (r.lowercase(Locale.US)) {
+                        "common" -> 1
+                        "uncommon" -> 2
+                        "rare" -> 3
+                        "very rare" -> 4
+                        "legendary" -> 5
+                        else -> 1
+                    }
+                }
+                val targetRarityTier = getRarityTier(selectedRecipe!!.rarity)
+                val resRarityTier = getRarityTier(resRecipe.rarity)
+                if (resRarityTier < targetRarityTier || resRecipe.minLevel < selectedRecipe!!.minLevel) {
+                    "Incompatible Catalyst: The selected residue's rarity/level is too low for this potion."
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+    }
 
     // Start Date selection state
     var startDay by remember { mutableStateOf(currentDay) }
@@ -1362,6 +1391,18 @@ fun StartBrewingForm(
                         }
                     }
                 }
+
+                if (validationError != null) {
+                    Text(
+                        text = validationError,
+                        color = ErrorCrimson,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .testTag("residue_validation_error")
+                    )
+                }
             }
         }
 
@@ -1531,8 +1572,8 @@ fun StartBrewingForm(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    val gpCost = recipe.craftingPriceGp * quantity
-                    val baseBrews = sqrt(recipe.vendingPriceGp.toDouble()) / 5.0
+                    val gpCost = recipe.reagentCost * quantity
+                    val baseBrews = sqrt(recipe.craftingCost.toDouble()) / 5.0
                     val speedReduced = if (selectedResidue != null) " (Active Catalyst halve roll possible!)" else ""
 
                     // Dynamic calculated completion date based on standard calendar
@@ -1548,7 +1589,7 @@ fun StartBrewingForm(
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Required Crafting Time:", fontSize = 12.sp, color = Color.LightGray)
-                        val reqSingleDays = Math.round(kotlin.math.sqrt(recipe.vendingPriceGp.toDouble()) / 5.0).toInt()
+                        val reqSingleDays = Math.round(kotlin.math.sqrt(recipe.craftingCost.toDouble()) / 5.0).toInt()
                         val reqTotalDays = reqSingleDays * quantity
                         Text("$reqSingleDays Days" + (if (quantity > 1) " ($reqTotalDays Days total)" else ""), fontSize = 12.sp, color = MintAlchemistGreen, fontWeight = FontWeight.Bold)
                     }
@@ -1593,7 +1634,7 @@ fun StartBrewingForm(
                     }
                 }
             },
-            enabled = selectedRecipe != null,
+            enabled = selectedRecipe != null && validationError == null,
             colors = ButtonDefaults.buttonColors(
                 containerColor = WizardPurple,
                 contentColor = DeepObsidian

@@ -87,7 +87,7 @@ class PotionViewModel(private val repository: PotionRepository) : ViewModel() {
         startPeriod: String,
         manualD100Roll: Int? = null
     ) {
-        val baseDuration = calculateBaseDuration(recipe.vendingPriceGp)
+        val baseDuration = calculateBaseDuration(recipe.craftingCost)
         
         viewModelScope.launch {
             var actualDuration = baseDuration
@@ -224,8 +224,8 @@ class PotionViewModel(private val repository: PotionRepository) : ViewModel() {
         }
     }
 
-    fun calculateBaseDuration(vendingPriceGp: Int): Double {
-        return sqrt(vendingPriceGp.toDouble()) / 5.0
+    fun calculateBaseDuration(craftingCost: Int): Double {
+        return sqrt(craftingCost.toDouble()) / 5.0
     }
 
     class Factory(private val repository: PotionRepository) : ViewModelProvider.Factory {
